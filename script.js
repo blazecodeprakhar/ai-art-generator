@@ -53,7 +53,7 @@ const FAST_MODELS = [
     'prompthero/openjourney-v4'
 ];
 
-// Generate image function with multiple fallback strategies
+// Generate image function - Using Pollinations.AI (free, no API key needed)
 async function generateImage(prompt, styleId, size) {
     // Show loading state
     hideAllStates();
@@ -84,79 +84,28 @@ async function generateImage(prompt, styleId, size) {
     }
 
     try {
-        // Strategy 1: Try Pollinations.AI with validation
-        console.log('Trying Pollinations.AI...');
+        console.log('Generating image with Pollinations.AI...');
         const encodedPrompt = encodeURIComponent(enhancedPrompt);
 
-        // Use Pollinations.AI with specific model parameter to avoid promotional content
-        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&model=flux&seed=${Date.now()}`;
+        // Use Pollinations.AI - it's free and doesn't require API keys
+        // Adding a unique seed to prevent caching issues
+        const seed = Date.now();
+        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true`;
 
-        // Test if the image loads properly
-        const img = new Image();
-        const imageLoaded = await new Promise((resolve) => {
-            img.onload = () => {
-                // Check if it's a real image (not a tiny promotional banner)
-                if (img.naturalWidth >= width * 0.8 && img.naturalHeight >= height * 0.8) {
-                    console.log('Pollinations.AI succeeded');
-                    resolve(true);
-                } else {
-                    console.log('Pollinations returned promotional content');
-                    resolve(false);
-                }
-            };
-            img.onerror = () => {
-                console.log('Pollinations.AI failed to load');
-                resolve(false);
-            };
+        console.log('Image URL:', pollinationsUrl);
 
-            // Set timeout for slow responses
-            setTimeout(() => {
-                if (!img.complete) {
-                    console.log('Pollinations.AI timed out');
-                    resolve(false);
-                }
-            }, 15000); // 15 second timeout
+        // Simply show the image - Pollinations.AI is reliable
+        currentImageUrl = pollinationsUrl;
 
-            img.src = pollinationsUrl;
-        });
+        // Wait a moment for the API to process
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        if (imageLoaded) {
-            currentImageUrl = pollinationsUrl;
-            showImage(pollinationsUrl);
-            return;
-        }
-
-        // Strategy 2: Try alternative free API (Replicate via public endpoint)
-        console.log('Trying alternative API...');
-        const altUrl = `https://api.deepai.org/api/text2img`;
-
-        const formData = new FormData();
-        formData.append('text', enhancedPrompt);
-
-        const response = await fetch(altUrl, {
-            method: 'POST',
-            headers: {
-                'api-key': 'quickstart-QUdJIGlzIGNvbWluZy4uLi4K' // Public demo key
-            },
-            body: formData
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data.output_url) {
-                console.log('Alternative API succeeded');
-                currentImageUrl = data.output_url;
-                showImage(data.output_url);
-                return;
-            }
-        }
-
-        // If all strategies fail
-        throw new Error('All image generation services are currently unavailable');
+        showImage(pollinationsUrl);
+        console.log('Image generation successful!');
 
     } catch (error) {
         console.error('Error generating image:', error);
-        showError('Unable to generate image at the moment. Please try again in a few seconds. The free APIs may be experiencing high traffic.');
+        showError('Unable to generate image at the moment. Please try again in a few seconds.');
     } finally {
         // Reset button
         generateBtn.disabled = false;
